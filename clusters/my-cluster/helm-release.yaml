@@ -15,5 +15,5 @@ spec:
         namespace: flux-system
       verificationKeyring:
         secretRef:
-          name: non-keyring-secret
+          name: keyring-secret-dads
       interval: 1m
