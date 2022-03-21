@@ -1,19 +1,19 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
-kind: HelmRelease
-metadata:
-  name: smth
-  namespace: flux-system
-spec:
-  interval: 1m
-  chart:
-    spec:
-      chart: smth
-      version: '0.1.x'
-      sourceRef:
-        kind: HelmRepository
-        name: smth
-        namespace: flux-system
-      verificationKeyring:
-        secretRef:
-          name: keyring-secret
-      interval: 1m
+# apiVersion: helm.toolkit.fluxcd.io/v2beta1
+# kind: HelmRelease
+# metadata:
+  # name: smth
+  # namespace: flux-system
+# spec:
+  # interval: 1m
+  # chart:
+    # spec:
+      # chart: smth
+      # version: '0.1.x'
+      # sourceRef:
+        # kind: HelmRepository
+        # name: smth
+        # namespace: flux-system
+      # verificationKeyring:
+        # secretRef:
+          # name: keyring-secret
+      # interval: 1m
