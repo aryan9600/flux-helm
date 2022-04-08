@@ -6,7 +6,7 @@ metadata:
 spec:
   chart:
     spec:
-      chart: aqua/starboard-operator
+      chart: starboard-operator
       sourceRef:
         kind: HelmRepository
         name: starboard-operator
