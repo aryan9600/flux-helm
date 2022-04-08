@@ -1,19 +1,15 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: smth
-  namespace: flux-system
+  name: starboard-operator
+  namespace: starboard-system
 spec:
-  interval: 1m
   chart:
     spec:
-      chart: smth
-      version: '0.1.x'
+      chart: aqua/starboard-operator
       sourceRef:
         kind: HelmRepository
-        name: smth
+        name: starboard-operator
         namespace: flux-system
-      verificationKeyring:
-        secretRef:
-          name: keyring-secret
-      interval: 1m
+      version: 0.10.3
+  interval: 1m0s

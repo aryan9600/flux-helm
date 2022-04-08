@@ -1,8 +1,8 @@
-apiVersion: source.toolkit.fluxcd.io/v1beta1
+apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
-  name: smth
+  name: starboard-operator
   namespace: flux-system
 spec:
-  interval: 1m
-  url: http://chartmuseum.default:8080
+  interval: 1m0s
+  url: https://aquasecurity.github.io/helm-charts/
