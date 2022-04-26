@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   interval: 5m
-  targetNamespace: test
+  targetNamespace: lmao
   releaseName: custom
   chart:
     spec:
