@@ -1,16 +1,17 @@
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: starboard-operator
-  namespace: starboard-system
+  name: podinfo
+  namespace: default
 spec:
+  interval: 5m
+  targetNamespace: test
   chart:
     spec:
-      chart: starboard-operator
+      chart: podinfo
+      version: '4.0.x'
       sourceRef:
         kind: HelmRepository
-        name: starboard-operator
+        name: podinfo
         namespace: flux-system
-      version: 0.10.3
-  interval: 1m0s
-  targetNamespace: test
+      interval: 1m
