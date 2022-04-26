@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: podinfo
-      version: '4.0.x'
+      version: '5.0.x'
       sourceRef:
         kind: HelmRepository
         name: podinfo
