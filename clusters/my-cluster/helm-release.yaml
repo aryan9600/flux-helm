@@ -13,3 +13,4 @@ spec:
         namespace: flux-system
       version: 0.10.3
   interval: 1m0s
+  targetNamespace: default
