@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   interval: 5m
-  targetNamespace: smth
+  targetNamespace: default
   chart:
     spec:
       chart: podinfo
