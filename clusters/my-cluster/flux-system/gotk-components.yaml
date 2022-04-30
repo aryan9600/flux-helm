@@ -2867,6 +2867,12 @@ spec:
                   the latest desired state. It is reset after a successful reconciliation.
                 format: int64
                 type: integer
+              releaseName:
+                type: string
+              releaseNamespace:
+                type: string
+              storageNamespace:
+                type: string
             type: object
         type: object
     served: true
