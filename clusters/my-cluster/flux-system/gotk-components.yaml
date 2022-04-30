@@ -2862,13 +2862,6 @@ spec:
                 description: ObservedGeneration is the last observed generation.
                 format: int64
                 type: integer
-              releaseName:
-                type: string
-              releaseNamespace:
-                description: 'TODO: Should we store more info about the installed
-                  release in Status? ReleaseNamespace is the namespace where the current
-                  Helm Release is installed.'
-                type: string
               upgradeFailures:
                 description: UpgradeFailures is the upgrade failure count against
                   the latest desired state. It is reset after a successful reconciliation.
@@ -5092,6 +5085,410 @@ subjects:
 - kind: ServiceAccount
   name: image-automation-controller
   namespace: flux-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: notification-controller
+  namespace: flux-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: source-controller
+  namespace: flux-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: source-controller
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: webhook-receiver
+  namespace: flux-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http-webhook
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: helm-controller
+  namespace: flux-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: helm-controller
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-system.svc.cluster.local./
+        - --watch-all-namespaces=true
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/fluxcd/helm-controller:v0.20.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: helm-controller
+      terminationGracePeriodSeconds: 600
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: kustomize-controller
+  namespace: flux-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: kustomize-controller
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-system.svc.cluster.local./
+        - --watch-all-namespaces=true
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/fluxcd/kustomize-controller:v0.24.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: kustomize-controller
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: notification-controller
+  namespace: flux-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: notification-controller
+    spec:
+      containers:
+      - args:
+        - --watch-all-namespaces=true
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/fluxcd/notification-controller:v0.23.3
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 9292
+          name: http-webhook
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: notification-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v0.29.1
+    control-plane: controller
+  name: source-controller
+  namespace: flux-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: source-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: source-controller
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-system.svc.cluster.local./
+        - --watch-all-namespaces=true
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        - --storage-path=/data
+        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/fluxcd/source-controller:v0.24.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
